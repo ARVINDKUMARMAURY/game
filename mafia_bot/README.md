@@ -75,14 +75,13 @@ This repo is set up for Railway (`Procfile` + root `requirements.txt` + `runtime
 - `/stats` — your record (any chat, including DM)
 - `/leaderboard` — top players (any chat, including DM)
 
-## How /join handles the "bot must be started first" requirement
-Telegram only lets a bot DM a user who has messaged it at least once. Instead of making
-players do that manually, `/join` handles it automatically:
-- If the bot can already DM you (you've used it before), you're joined immediately.
-- If not, you get a **"🔓 Start bot & join"** button right in the group. Tapping it opens
-  a DM with the bot carrying a deep-link payload — the bot's `/start` handler detects it
-  and joins you to the lobby automatically, no extra command needed. The group gets a
-  confirmation message either way.
+## How /join works
+Telegram only lets a bot DM a user who has messaged it at least once, so `/join` always
+routes through the bot's DM to guarantee that:
+- Tapping `/join` in the group posts a **"🔓 Tap to join"** button.
+- Tapping it opens a DM with the bot carrying a deep-link payload — the bot's `/start`
+  handler detects it and joins you to the lobby automatically, no extra command needed.
+- The group gets a confirmation message once you're in.
 
 ## How the Mafia night chat works
 During the night phase, any text a living Mafia member sends to the bot in **private**

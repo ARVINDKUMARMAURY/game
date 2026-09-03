@@ -135,31 +135,18 @@ async def join(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.effective_chat.send_message("You already joined.")
         return
 
-    # Probe whether we can DM this user — if not, they haven't tapped Start on the bot yet.
-    try:
-        await context.bot.send_message(
-            uid, f"✅ You joined the Mafia lobby! You'll get your role here once the host starts the game."
-        )
-    except (Forbidden, BadRequest):
-        bot_username = await get_bot_username(context)
-        deep_link = f"https://t.me/{bot_username}?start=join_{chat_id}"
-        markup = InlineKeyboardMarkup(
-            [[InlineKeyboardButton("🔓 Start bot & join", url=deep_link)]]
-        )
-        await update.effective_chat.send_message(
-            f"{name}, I need to be able to DM you your role — tap below to start me, "
-            "and you'll be joined automatically.",
-            reply_markup=markup,
-        )
-        return
-
-    ok, err = game.add_player(uid, name)
-    if not ok:
-        await update.effective_chat.send_message(err)
-        return
-    player_chat[uid] = chat_id
-
-    await update.effective_chat.send_message(f"✅ {mention(uid, name)} joined! ({len(game.players)} players)")
+    # Every /join goes through the bot's DM — this guarantees the bot can message the
+    # player later for their role, and keeps the join flow identical for everyone
+    # regardless of whether they've talked to the bot before.
+    bot_username = await get_bot_username(context)
+    deep_link = f"https://t.me/{bot_username}?start=join_{chat_id}"
+    markup = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("🔓 Tap to join", url=deep_link)]]
+    )
+    await update.effective_chat.send_message(
+        f"{name}, tap below — it opens my DM and adds you to the lobby automatically.",
+        reply_markup=markup,
+    )
 
 
 async def leave(update: Update, context: ContextTypes.DEFAULT_TYPE):
