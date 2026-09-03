@@ -38,7 +38,7 @@ This repo is set up for Railway (`Procfile` + root `requirements.txt` + `runtime
 ## Setup (local / VPS)
 
 
-1. Install dependencies:
+1. Install dependencies (from the repo root, one level up from `mafia_bot/`):
    ```
    pip install -r requirements.txt
    ```
