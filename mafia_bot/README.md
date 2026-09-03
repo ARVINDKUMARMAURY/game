@@ -19,7 +19,24 @@ stats/leaderboard. Built with `python-telegram-bot` v21.
 Backed by MongoDB via Motor. **Fully optional** — if `MONGO_URI` isn't set, the bot
 runs fine without it; `/stats` and `/leaderboard` just say no data is available yet.
 
-## Setup
+## Deploy on Railway
+
+This repo is set up for Railway (`Procfile` + root `requirements.txt` + `runtime.txt`).
+
+1. On Railway: **New Project → Deploy from GitHub repo** → select `ARVINDKUMARMAURY/game`.
+2. Railway auto-detects Python via `requirements.txt` and runs the process defined in `Procfile` (`worker: python mafia_bot/bot.py`).
+3. Go to your service → **Variables** and add:
+   - `BOT_TOKEN` — from @BotFather
+   - `MONGO_URI` — optional, for `/stats` and `/leaderboard` (e.g. a MongoDB Atlas connection string, or Railway's own MongoDB plugin URI)
+   - `MONGO_DB_NAME` — optional, defaults to `mafia_bot`
+4. Deploy. Since this is a **worker** (long-polling bot, not a web server), Railway won't assign it a public URL — that's expected, just check the **Deployments → Logs** tab to confirm it says "Starting Mafia bot...".
+5. If Railway defaults to a "web" process type instead of picking up `worker` from the Procfile, go to **Settings → Deploy → Start Command** and set it manually to:
+   ```
+   python mafia_bot/bot.py
+   ```
+
+## Setup (local / VPS)
+
 
 1. Install dependencies:
    ```
