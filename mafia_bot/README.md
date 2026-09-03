@@ -37,30 +37,33 @@ This repo is set up for Railway (`Procfile` + root `requirements.txt` + `runtime
 
 ## Setup (local / VPS)
 
-
 1. Install dependencies (from the repo root, one level up from `mafia_bot/`):
    ```
    pip install -r requirements.txt
    ```
 
-2. Get a `BOT_TOKEN` from @BotFather.
+2. Get a `BOT_TOKEN` from @BotFather, and (optional, for `/stats`/`/leaderboard`) a MongoDB
+   connection string — same DB you already use for KingUserBot/DNS-CHAT-BOT works fine,
+   just point it at a new database name.
 
-3. (Optional, for stats) Get a MongoDB connection string — same DB you already use
-   for KingUserBot/DNS-CHAT-BOT works fine, just point it at a new database name.
+3. Copy `.env.example` (repo root) to `.env` and fill in your values:
+   ```
+   cp .env.example .env
+   ```
+   Then edit `.env`:
+   ```
+   BOT_TOKEN=your_bot_token
+   MONGO_URI=your_mongodb_connection_string   # optional
+   MONGO_DB_NAME=mafia_bot                     # optional, defaults to mafia_bot
+   ```
+   `.env` is gitignored — it never gets pushed to GitHub.
 
-4. Export env vars:
+4. Run:
    ```
-   export BOT_TOKEN=your_bot_token
-   export MONGO_URI=your_mongodb_connection_string   # optional
-   export MONGO_DB_NAME=mafia_bot                     # optional, defaults to mafia_bot
+   python mafia_bot/bot.py
    ```
 
-5. Run:
-   ```
-   python bot.py
-   ```
-
-   For VPS: `pm2 start bot.py --interpreter python3 --name mafia-bot`.
+   For VPS: `pm2 start mafia_bot/bot.py --interpreter python3 --name mafia-bot`.
 
 ## Commands (in a group)
 - `/newgame` — open a lobby
