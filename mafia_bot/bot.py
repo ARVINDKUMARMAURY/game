@@ -26,10 +26,32 @@ log = logging.getLogger("mafia-bot")
 games: dict[int, MafiaGame] = {}
 # user_id -> chat_id, so we know which game a DM callback/action/relay message belongs to
 player_chat: dict[int, int] = {}
+# cached bot username for building deep links, filled in on first use
+_bot_username = None
 
 
 def mention(user_id, name):
     return f"[{name}](tg://user?id={user_id})"
+
+
+async def get_bot_username(context: ContextTypes.DEFAULT_TYPE):
+    global _bot_username
+    if _bot_username is None:
+        me = await context.bot.get_me()
+        _bot_username = me.username
+    return _bot_username
+
+
+async def announce_join(context: ContextTypes.DEFAULT_TYPE, game, uid, name):
+    """Adds a player to the lobby, wires player_chat, and posts the confirmation in the group."""
+    ok, err = game.add_player(uid, name)
+    if not ok:
+        return ok, err
+    player_chat[uid] = game.chat_id
+    await context.bot.send_message(
+        game.chat_id, f"✅ {mention(uid, name)} joined! ({len(game.players)} players)"
+    )
+    return True, None
 
 
 # ---------------------------------------------------------------------
@@ -37,6 +59,36 @@ def mention(user_id, name):
 # ---------------------------------------------------------------------
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    args = context.args
+
+    # Deep-link join: user tapped "Start bot & join" from /join in a group lobby.
+    if args and args[0].startswith("join_"):
+        try:
+            chat_id = int(args[0].split("_", 1)[1])
+        except ValueError:
+            chat_id = None
+
+        game = games.get(chat_id) if chat_id is not None else None
+        uid = update.effective_user.id
+        name = update.effective_user.first_name
+
+        if not game or game.phase != Phase.LOBBY:
+            await update.effective_chat.send_message(
+                "That lobby isn't open anymore — ask the host to /newgame again, then /join."
+            )
+            return
+
+        ok, err = await announce_join(context, game, uid, name)
+        if not ok:
+            await update.effective_chat.send_message(err)
+            return
+
+        await update.effective_chat.send_message(
+            "✅ You're set and joined the lobby! Head back to the group — I'll DM you your role here once the game starts.",
+            reply_markup=rules_button_markup(),
+        )
+        return
+
     await update.effective_chat.send_message(
         "🌙 Welcome to **Mafia**! Use /newgame in a group to open a lobby.",
         reply_markup=rules_button_markup(),
@@ -77,15 +129,37 @@ async def join(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     uid = update.effective_user.id
-    ok, err = game.add_player(uid, update.effective_user.first_name)
+    name = update.effective_user.first_name
+
+    if uid in game.players:
+        await update.effective_chat.send_message("You already joined.")
+        return
+
+    # Probe whether we can DM this user — if not, they haven't tapped Start on the bot yet.
+    try:
+        await context.bot.send_message(
+            uid, f"✅ You joined the Mafia lobby! You'll get your role here once the host starts the game."
+        )
+    except (Forbidden, BadRequest):
+        bot_username = await get_bot_username(context)
+        deep_link = f"https://t.me/{bot_username}?start=join_{chat_id}"
+        markup = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("🔓 Start bot & join", url=deep_link)]]
+        )
+        await update.effective_chat.send_message(
+            f"{name}, I need to be able to DM you your role — tap below to start me, "
+            "and you'll be joined automatically.",
+            reply_markup=markup,
+        )
+        return
+
+    ok, err = game.add_player(uid, name)
     if not ok:
         await update.effective_chat.send_message(err)
         return
     player_chat[uid] = chat_id
 
-    await update.effective_chat.send_message(
-        f"✅ {mention(uid, update.effective_user.first_name)} joined! ({len(game.players)} players)"
-    )
+    await update.effective_chat.send_message(f"✅ {mention(uid, name)} joined! ({len(game.players)} players)")
 
 
 async def leave(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -69,11 +69,20 @@ This repo is set up for Railway (`Procfile` + root `requirements.txt` + `runtime
 - `/newgame` — open a lobby
 - `/join` — join
 - `/leave` — leave before start
-- `/startgame` — host starts (min 5 players; everyone must have DM'd the bot at least once first)
+- `/startgame` — host starts (min 5 players; see below on how players get DM access)
 - `/endgame` — host ends the game
 - `/mafiahelp` — rules
 - `/stats` — your record (any chat, including DM)
 - `/leaderboard` — top players (any chat, including DM)
+
+## How /join handles the "bot must be started first" requirement
+Telegram only lets a bot DM a user who has messaged it at least once. Instead of making
+players do that manually, `/join` handles it automatically:
+- If the bot can already DM you (you've used it before), you're joined immediately.
+- If not, you get a **"🔓 Start bot & join"** button right in the group. Tapping it opens
+  a DM with the bot carrying a deep-link payload — the bot's `/start` handler detects it
+  and joins you to the lobby automatically, no extra command needed. The group gets a
+  confirmation message either way.
 
 ## How the Mafia night chat works
 During the night phase, any text a living Mafia member sends to the bot in **private**
